@@ -186,6 +186,7 @@
         <button class="btn-secondary" id="resetScoreBtn">Reset Score</button>
         <button class="btn-primary" id="startCameraBtn">Start Camera</button>
         <button class="btn-secondary" id="stopCameraBtn">Stop Camera</button>
+        <button class="btn-secondary" id="showInstructionsBtn">How to Play</button>
       </div>
     </div>
 
@@ -222,13 +223,27 @@
   let serialReader = null;
   let currentDifficulty = "Unknown";
 
+  // Clean serial text to avoid weird characters breaking layout
+  function cleanSerialText(s){
+    // remove non-printable characters
+    return s.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
+  }
+
   // ---------------- logging / UI helpers ----------------
   function addLogEntry(msg){
     const container = document.getElementById('activityLog');
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    const time = new Date().toLocaleTimeString();
-    entry.innerHTML = `<div class="log-time">${time}</div><div>${msg}</div>`;
+
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'log-time';
+    timeDiv.textContent = new Date().toLocaleTimeString();
+
+    const msgDiv = document.createElement('div');
+    msgDiv.textContent = msg;  // textContent avoids HTML issues
+
+    entry.appendChild(timeDiv);
+    entry.appendChild(msgDiv);
     container.prepend(entry);
   }
 
@@ -404,7 +419,8 @@
         if (done) break;
         if (!value) continue;
         value.split(/\r?\n/).forEach(line => {
-          if(line.trim()) handleSerialLine(line.trim());
+          const trimmed = line.trim();
+          if(trimmed) handleSerialLine(trimmed);
         });
       }
     }catch(err){
@@ -428,13 +444,14 @@
   function handleSerialLine(line){
     const trimmed = line.trim();
     if(!trimmed) return;
+    const safe = cleanSerialText(trimmed);
 
     // 1) Score lines: "Score: <n>"
     const scoreMatch = trimmed.match(/^Score:\s*(\d+)\s*$/i);
     if(scoreMatch){
       const n = parseInt(scoreMatch[1],10);
       if(!isNaN(n)){ updateScore(n); addLogEntry('Score updated from device: ' + n); }
-      else addLogEntry('Received SCORE line but value not a number: ' + trimmed);
+      else addLogEntry('Received SCORE line but value not a number: ' + safe);
       return;
     }
 
@@ -444,7 +461,10 @@
       gameState.gamesPlayed = (gameState.gamesPlayed || 0) + 1;
       document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
       const innerScore = trimmed.match(/\|\s*Score:\s*(\d+)/i);
-      if(innerScore){ const n = parseInt(innerScore[1],10); if(!isNaN(n)) updateScore(n); }
+      if(innerScore){
+        const n = parseInt(innerScore[1],10);
+        if(!isNaN(n)) updateScore(n);
+      }
       return;
     }
 
@@ -473,26 +493,26 @@
       // Example: "Difficulty selected: EASY (3-step pattern)"
       const m = trimmed.match(/^Difficulty selected:\s*([A-Z]+)/i);
       if(m){ currentDifficulty = m[1].toUpperCase(); }
-      addLogEntry('Device: ' + trimmed + ' (Difficulty: ' + currentDifficulty + ')');
+      addLogEntry('Device: ' + safe + ' (Difficulty: ' + currentDifficulty + ')');
       return;
     }
     if(/select difficulty/i.test(trimmed)){
-      addLogEntry('Device: ' + trimmed);
+      addLogEntry('Device: ' + safe);
       return;
     }
     if(/game over/i.test(trimmed)){
-      addLogEntry('Device: GAME OVER — ' + trimmed);
+      addLogEntry('Device: GAME OVER — ' + safe);
       return;
     }
 
     // 5) Steps or LEDs
     if(/^Step\s+\d+/i.test(trimmed) || /^LED\s+\d+\s*-\s*/i.test(trimmed) || /^PATTERN_STEP:/i.test(trimmed)){
-      addLogEntry('Device: ' + trimmed);
+      addLogEntry('Device: ' + safe);
       return;
     }
 
     // fallback
-    addLogEntry('Serial: ' + trimmed);
+    addLogEntry('Serial: ' + safe);
   }
 
   // ---------------- init / wiring ----------------
@@ -512,11 +532,15 @@
     document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
     document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.target)));
 
-    // instruction modal close
+    // instruction modal close + reopen
     const modal = document.getElementById('instructionModal');
     const closeBtn = document.getElementById('closeInstructionBtn');
+    const showBtn = document.getElementById('showInstructionsBtn');
     if(closeBtn){
       closeBtn.addEventListener('click', ()=>{ modal.style.display = 'none'; });
+    }
+    if(showBtn){
+      showBtn.addEventListener('click', ()=>{ modal.style.display = 'flex'; });
     }
 
     // Load stored scores
