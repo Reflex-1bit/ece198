@@ -1,563 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Patient Game Log — Arduino Connected</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px}
-    .container{max-width:1200px;margin:0 auto}
-    .header{background:white;border-radius:15px;padding:30px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    .patient-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-    .patient-name-input{font-size:28px;font-weight:bold;color:#333;border:2px solid transparent;border-radius:8px;padding:8px 12px;background:#f8f9fa;transition:.3s;width:100%;max-width:400px}
-    .patient-name-input:hover{border-color:#667eea;background:white}
-    .patient-name-input:focus{outline:none;border-color:#667eea;background:white;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
-    .session-date{color:#666;font-size:14px}
-    .connection-status{display:flex;align-items:center;gap:10px;padding:15px;background:#e8f5e9;border-radius:10px;margin-bottom:20px}
-    .status-indicator{width:12px;height:12px;border-radius:50%;background:#9e9e9e;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-    .score-display{background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:20px;padding:40px;text-align:center;color:white;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    .score-label{font-size:18px;opacity:.9;margin-bottom:10px;letter-spacing:2px}
-    .score-value{font-size:72px;font-weight:bold;text-shadow:0 4px 10px rgba(0,0,0,.3)}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:20px}
-    .stat-card{background:white;border-radius:15px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,.1)}
-    .stat-label{color:#666;font-size:14px;margin-bottom:8px}
-    .stat-value{color:#333;font-size:32px;font-weight:bold}
-    .tabs{display:flex;gap:10px;margin-top:20px}
-    .tab-btn{padding:12px 24px;border-radius:8px;background:#f5f5f5;cursor:pointer;font-weight:600;transition:.3s}
-    .tab-btn.active{background:#667eea;color:white}
-    .tab-content{display:none}
-    .tab-content.active{display:block}
-    .log-section{background:white;border-radius:15px;padding:30px;margin-top:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    .log-title{font-size:24px;margin-bottom:20px;color:#333}
-    .log-entry{padding:15px;border-left:4px solid #667eea;background:#f8f9fa;margin-bottom:10px;border-radius:5px}
-    .log-time{color:#666;font-size:12px;margin-bottom:5px}
-    button{padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;transition:.3s}
-    .btn-primary{background:#667eea;color:white}
-    .btn-secondary{background:#f5f5f5;color:#333}
-    video{width:100%;max-width:600px;border-radius:15px;margin-top:20px;box-shadow:0 5px 15px rgba(0,0,0,.2)}
-    .controls{display:flex;gap:10px;flex-wrap:wrap}
-    /* Instruction modal */
-    .instruction-backdrop{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.5);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:9999;
-    }
-    .instruction-modal{
-      background:#ffffff;
-      border-radius:16px;
-      padding:24px 28px;
-      max-width:520px;
-      width:90%;
-      box-shadow:0 15px 40px rgba(0,0,0,0.25);
-      font-size:14px;
-      max-height:80vh;
-      overflow-y:auto;
-    }
-    .instruction-modal h2{
-      margin-bottom:12px;
-      font-size:20px;
-      color:#333;
-    }
-    .instruction-modal h3{
-      margin-top:10px;
-      margin-bottom:6px;
-      font-size:16px;
-      color:#444;
-    }
-    .instruction-modal p{
-      margin-bottom:6px;
-      color:#444;
-      line-height:1.4;
-    }
-    .instruction-modal ul{
-      margin-left:16px;
-      margin-bottom:8px;
-    }
-    .instruction-modal li{
-      margin-bottom:4px;
-    }
-    .instruction-modal-footer{
-      margin-top:16px;
-      text-align:right;
-    }
-  </style>
-  <!-- jsPDF for PDF export -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+ <meta charset="utf-8" />
+ <meta name="viewport" content="width=device-width,initial-scale=1" />
+ <title>Patient Game Log — Arduino Connected</title>
+ <style>
+ *{margin:0;padding:0;box-sizing:border-box}
+ body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px}
+ .container{max-width:1200px;margin:0 auto}
+ .header{background:white;border-radius:15px;padding:30px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+ .patient-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+ .patient-name-input{font-size:28px;font-weight:bold;color:#333;border:2px solid transparent;border-radius:8px;padding:8px 12px;background:#f8f9fa;transition:.3s;width:100%;max-width:400px}
+ .patient-name-input:hover{border-color:#667eea;background:white}
+ .patient-name-input:focus{outline:none;border-color:#667eea;background:white;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
+ .session-date{color:#666;font-size:14px}
+ .connection-status{display:flex;align-items:center;gap:10px;padding:15px;background:#e8f5e9;border-radius:10px;margin-bottom:20px}
+ .status-indicator{width:12px;height:12px;border-radius:50%;background:#9e9e9e;animation:pulse 2s infinite}
+ @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+ .score-display{background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:20px;padding:40px;text-align:center;color:white;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+ .score-label{font-size:18px;opacity:.9;margin-bottom:10px;letter-spacing:2px}
+ .score-value{font-size:72px;font-weight:bold;text-shadow:0 4px 10px rgba(0,0,0,.3)}
+ .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:20px}
+ .stat-card{background:white;border-radius:15px;padding:20px;box-shadow:0 5px 15px rgba(0,0,0,.1)}
+ .stat-label{color:#666;font-size:14px;margin-bottom:8px}
+ .stat-value{color:#333;font-size:32px;font-weight:bold}
+ .tabs{display:flex;gap:10px;margin-top:20px}
+ .tab-btn{padding:12px 24px;border-radius:8px;background:#f5f5f5;cursor:pointer;font-weight:600;transition:.3s}
+ .tab-btn.active{background:#667eea;color:white}
+ .tab-content{display:none}
+ .tab-content.active{display:block}
+ .log-section{background:white;border-radius:15px;padding:30px;margin-top:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+ .log-title{font-size:24px;margin-bottom:20px;color:#333}
+ .log-entry{padding:15px;border-left:4px solid #667eea;background:#f8f9fa;margin-bottom:10px;border-radius:5px}
+ .log-time{color:#666;font-size:12px;margin-bottom:5px}
+ button{padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;transition:.3s}
+ .btn-primary{background:#667eea;color:white}
+ .btn-secondary{background:#f5f5f5;color:#333}
+ video{width:100%;max-width:600px;border-radius:15px;margin-top:20px;box-shadow:0 5px 15px rgba(0,0,0,.2)}
+ .controls{display:flex;gap:10px;flex-wrap:wrap}
+ /* Instruction modal */
+ .instruction-backdrop{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,0.5);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:9999;
+ }
+ .instruction-modal{
+ background:#ffffff;
+ border-radius:16px;
+ padding:24px 28px;
+ max-width:520px;
+ width:90%;
+ box-shadow:0 15px 40px rgba(0,0,0,0.25);
+ font-size:14px;
+ max-height:80vh;
+ overflow-y:auto;
+ }
+ .instruction-modal h2{
+ margin-bottom:12px;
+ font-size:20px;
+ color:#333;
+ }
+ .instruction-modal h3{
+ margin-top:10px;
+ margin-bottom:6px;
+ font-size:16px;
+ color:#444;
+ }
+ .instruction-modal p{
+ margin-bottom:6px;
+ color:#444;
+ line-height:1.4;
+ }
+ .instruction-modal ul{
+ margin-left:16px;
+ margin-bottom:8px;
+ }
+ .instruction-modal li{
+ margin-bottom:4px;
+ }
+ .instruction-modal-footer{
+ margin-top:16px;
+ text-align:right;
+ }
+ </style>
+ <!-- jsPDF for PDF export -->
+ <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <!-- Instruction popup -->
-  <div id="instructionModal" class="instruction-backdrop">
-    <div class="instruction-modal">
-      <h2>How to Play the Game</h2>
+ <!-- Instruction popup -->
+ <div id="instructionModal" class="instruction-backdrop">
+ <div class="instruction-modal">
+ <h2>How to Play the Game</h2>
 
-      <h3>1. Choose a Difficulty</h3>
-      <p>When the game starts, select a difficulty level using the buttons:</p>
-      <ul>
-        <li>Button 1 &rarr; <strong>Easy</strong> (3-step pattern)</li>
-        <li>Button 2 &rarr; <strong>Medium</strong> (5-step pattern)</li>
-        <li>Button 3 &rarr; <strong>Hard</strong> (7-step pattern)</li>
-      </ul>
-      <p>After selecting your difficulty, the system will ask you to click any button to begin.</p>
+ <h3>1. Choose a Difficulty</h3>
+ <p>When the game starts, select a difficulty level using the buttons:</p>
+ <ul>
+ <li>Button 1 &rarr; <strong>Easy</strong> (3-step pattern)</li>
+ <li>Button 2 &rarr; <strong>Medium</strong> (5-step pattern)</li>
+ <li>Button 3 &rarr; <strong>Hard</strong> (7-step pattern)</li>
+ </ul>
+ <p>After selecting your difficulty, the system will ask you to click any button to begin.</p>
 
-      <h3>2. Start the Round</h3>
-      <p>After choosing the difficulty, press any button to begin showing the pattern.</p>
+ <h3>2. Start the Round</h3>
+ <p>After choosing the difficulty, press any button to begin showing the pattern.</p>
 
-      <h3>3. Watch the LED Pattern</h3>
-      <p>The three RGB LEDs will light up one at a time, showing a sequence made up of:</p>
-      <ul>
-        <li>Which LED lights up (1, 2, or 3)</li>
-        <li>What color it shows (Red, Green, or Blue)</li>
-      </ul>
-      <p>Watch carefully, as this is the pattern you must repeat.</p>
+ <h3>3. Watch the LED Pattern</h3>
+ <p>The three RGB LEDs will light up one at a time, showing a sequence made up of:</p>
+ <ul>
+ <li>Which LED lights up (1, 2, or 3)</li>
+ <li>What color it shows (Red, Green, or Blue)</li>
+ </ul>
+ <p>Watch carefully, as this is the pattern you must repeat.</p>
 
-      <h3>4. Repeat the Pattern Using the Buttons</h3>
-      <p>Each button controls one LED:</p>
-      <ul>
-        <li>Button 1 &rarr; LED 1</li>
-        <li>Button 2 &rarr; LED 2</li>
-        <li>Button 3 &rarr; LED 3</li>
-      </ul>
-      <p>Your number of clicks determines the color:</p>
-      <ul>
-        <li>1 click &rarr; RED</li>
-        <li>2 clicks &rarr; GREEN</li>
-        <li>3 clicks &rarr; BLUE</li>
-      </ul>
-      <p><strong>Example:</strong> If the pattern shows <em>LED 3: Blue</em>, press Button 3 three times (3 clicks). You must enter the sequence in the exact same order it was shown to get a point.</p>
+ <h3>4. Repeat the Pattern Using the Buttons</h3>
+ <p>Each button controls one LED:</p>
+ <ul>
+ <li>Button 1 &rarr; LED 1</li>
+ <li>Button 2 &rarr; LED 2</li>
+ <li>Button 3 &rarr; LED 3</li>
+ </ul>
+ <p>Your number of clicks determines the color:</p>
+ <ul>
+ <li>1 click &rarr; RED</li>
+ <li>2 clicks &rarr; GREEN</li>
+ <li>3 clicks &rarr; BLUE</li>
+ </ul>
+ <p><strong>Example:</strong> If the pattern shows <em>LED 3: Blue</em>, press Button 3 three times (3 clicks). You must enter the sequence in the exact same order it was shown to get a point.</p>
 
-      <h3>5. Completing a Round</h3>
-      <p>Once you finish entering all steps, the game immediately checks your answer.</p>
-      <ul>
-        <li>If you get the whole pattern right, your score increases.</li>
-        <li>If your total score reaches 3 or a multiple of 3, the motor activates: moving forward to raise a flag, then reversing as a reward.</li>
-        <li>If you get it wrong, the game prints the correct sequence on the Serial Monitor.</li>
-      </ul>
+ <h3>5. Completing a Round</h3>
+ <p>Once you finish entering all steps, the game immediately checks your answer.</p>
+ <ul>
+ <li>If you get the whole pattern right, your score increases.</li>
+ <li>If your total score reaches 3 or a multiple of 3, the motor activates: moving forward to raise a flag, then reversing as a reward.</li>
+ <li>If you get it wrong, the game prints the correct sequence on the Serial Monitor.</li>
+ </ul>
 
-      <h3>6. Continue or Quit</h3>
-      <p>After each round:</p>
-      <ul>
-        <li>Press Button 1 &rarr; Play again (you will choose difficulty again)</li>
-        <li>Press Button 2 or Button 3 &rarr; Quit the game</li>
-      </ul>
-      <p>If you quit, the game shows your final score and the total number of rounds played.</p>
+ <h3>6. Continue or Quit</h3>
+ <p>After each round:</p>
+ <ul>
+ <li>Press Button 1 &rarr; Play again (you will choose difficulty again)</li>
+ <li>Press Button 2 or Button 3 &rarr; Quit the game</li>
+ </ul>
+ <p>If you quit, the game shows your final score and the total number of rounds played.</p>
 
-      <h3>7. Start Over Anytime</h3>
-      <p>To play again after quitting, simply reset your Arduino board.</p>
+ <h3>7. Start Over Anytime</h3>
+ <p>To play again after quitting, simply reset your Arduino board.</p>
 
-      <div class="instruction-modal-footer">
-        <button id="closeInstructionBtn" class="btn-primary">Got it</button>
-      </div>
-    </div>
-  </div>
+ <div class="instruction-modal-footer">
+ <button id="closeInstructionBtn" class="btn-primary">Got it</button>
+ </div>
+ </div>
+ </div>
 
-  <div class="container">
-    <div class="header">
-      <div class="patient-info">
-        <div>
-          <input type="text" class="patient-name-input" id="patientName" value="Patient Name">
-          <div class="session-date" id="sessionDate">Session: Loading...</div>
-        </div>
-      </div>
+ <div class="container">
+ <div class="header">
+ <div class="patient-info">
+ <div>
+ <input type="text" class="patient-name-input" id="patientName" value="Patient Name">
+ <div class="session-date" id="sessionDate">Session: Loading...</div>
+ </div>
+ </div>
 
-      <div class="connection-status">
-        <div class="status-indicator" id="statusIndicator"></div>
-        <span id="connectionText">Disconnected</span>
-      </div>
+ <div class="connection-status">
+ <div class="status-indicator" id="statusIndicator"></div>
+ <span id="connectionText">Disconnected</span>
+ </div>
 
-      <div class="score-display">
-        <div class="score-label">Current Score</div>
-        <div class="score-value" id="currentScore">0</div>
-      </div>
+ <div class="score-display">
+ <div class="score-label">Current Score</div>
+ <div class="score-value" id="currentScore">0</div>
+ </div>
 
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">High Score</div><div class="stat-value" id="highScore">0</div></div>
-        <div class="stat-card"><div class="stat-label">Games Played</div><div class="stat-value" id="gamesPlayed">0</div></div>
-        <div class="stat-card"><div class="stat-label">Session Time</div><div class="stat-value" id="sessionTime">0:00</div></div>
-      </div>
+ <div class="stats-grid">
+ <div class="stat-card"><div class="stat-label">High Score</div><div class="stat-value" id="highScore">0</div></div>
+ <div class="stat-card"><div class="stat-label">Games Played</div><div class="stat-value" id="gamesPlayed">0</div></div>
+ <div class="stat-card"><div class="stat-label">Session Time</div><div class="stat-value" id="sessionTime">0:00</div></div>
+ </div>
 
-      <div class="controls" style="margin-top:20px">
-        <button class="btn-primary" id="connectSerialBtn">Connect Arduino</button>
-        <button class="btn-secondary" id="resetScoreBtn">Reset Score</button>
-        <button class="btn-primary" id="startCameraBtn">Start Camera</button>
-        <button class="btn-secondary" id="stopCameraBtn">Stop Camera</button>
-        <button class="btn-secondary" id="showInstructionsBtn">How to Play</button>
-      </div>
-    </div>
+ <div class="controls" style="margin-top:20px">
+ <button class="btn-primary" id="connectSerialBtn">Connect Arduino</button>
+ <button class="btn-secondary" id="resetScoreBtn">Reset Score</button>
+ <button class="btn-primary" id="startCameraBtn">Start Camera</button>
+ <button class="btn-secondary" id="stopCameraBtn">Stop Camera</button>
+ <button class="btn-secondary" id="showInstructionsBtn">How to Play</button>
+ </div>
+ </div>
 
-    <div class="tabs">
-      <div class="tab-btn active" data-target="logTab">Activity Log</div>
-      <div class="tab-btn" data-target="storedTab">Stored Scores</div>
-      <div class="tab-btn" data-target="cameraTab">Camera</div>
-    </div>
+ <div class="tabs">
+ <div class="tab-btn active" data-target="logTab">Activity Log</div>
+ <div class="tab-btn" data-target="storedTab">Stored Scores</div>
+ <div class="tab-btn" data-target="cameraTab">Camera</div>
+ </div>
 
-    <div id="logTab" class="tab-content active log-section">
-      <div class="log-title">Activity Log</div>
-      <div id="activityLog"></div>
-    </div>
+ <div id="logTab" class="tab-content active log-section">
+ <div class="log-title">Activity Log</div>
+ <div id="activityLog"></div>
+ </div>
 
-    <div id="storedTab" class="tab-content log-section">
-      <div class="log-title">Stored Scores</div>
-      <button class="btn-primary" id="storeScoreBtn">Store Current Score</button>
-      <button class="btn-secondary" id="exportPdfBtn">Export as PDF</button>
-      <div id="storedScores" style="margin-top:20px"></div>
-    </div>
+ <div id="storedTab" class="tab-content log-section">
+ <div class="log-title">Stored Scores</div>
+ <button class="btn-primary" id="storeScoreBtn">Store Current Score</button>
+ <button class="btn-secondary" id="exportPdfBtn">Export as PDF</button>
+ <div id="storedScores" style="margin-top:20px"></div>
+ </div>
 
-    <div id="cameraTab" class="tab-content log-section">
-      <div class="log-title">Camera</div>
-      <video id="cameraFeed" autoplay playsinline></video>
-    </div>
-  </div>
+ <div id="cameraTab" class="tab-content log-section">
+ <div class="log-title">Camera</div>
+ <video id="cameraFeed" autoplay playsinline></video>
+ </div>
+ </div>
 
-  <script>
-  // ---------------- state ----------------
-  let storedScores = [];
-  let gameState = { score: 0, highScore: 0, gamesPlayed: 0, sessionStartTime: Date.now(), isPlaying: false };
-  let cameraStream = null;
-  let serialPort = null;
-  let serialReader = null;
-  let currentDifficulty = "Unknown";
+ <script>
+ // ---------------- state ----------------
+ let storedScores = [];
+ let gameState = {
+ score: 0,
+ highScore: 0,
+ gamesPlayed: 0,
+ sessionStartTime: Date.now()
+ };
+ let cameraStream = null;
+ let serialPort = null;
+ let serialReader = null;
+ let currentDifficulty = "Unknown";
+ let serialBuffer = "";
 
-  // Clean serial text to avoid weird characters breaking layout
-  function cleanSerialText(s){
-    // remove non-printable characters
-    return s.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
-  }
+ // Clean serial text to avoid weird characters breaking layout
+ function cleanSerialText(s){
+ // remove non-printable characters and extra whitespace
+ return s.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "").trim();
+ }
 
-  // ---------------- logging / UI helpers ----------------
-  function addLogEntry(msg){
-    const container = document.getElementById('activityLog');
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
+ // ---------------- logging / UI helpers ----------------
+ function addLogEntry(msg){
+ const container = document.getElementById('activityLog');
+ const entry = document.createElement('div');
+ entry.className = 'log-entry';
 
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'log-time';
-    timeDiv.textContent = new Date().toLocaleTimeString();
+ const timeDiv = document.createElement('div');
+ timeDiv.className = 'log-time';
+ timeDiv.textContent = new Date().toLocaleTimeString();
 
-    const msgDiv = document.createElement('div');
-    msgDiv.textContent = msg;  // textContent avoids HTML issues
+ const msgDiv = document.createElement('div');
+ msgDiv.textContent = msg; // textContent avoids HTML issues
 
-    entry.appendChild(timeDiv);
-    entry.appendChild(msgDiv);
-    container.prepend(entry);
-  }
+ entry.appendChild(timeDiv);
+ entry.appendChild(msgDiv);
+ container.prepend(entry);
+ }
 
-  function updateDateTime(){
-    const now = new Date();
-    document.getElementById('sessionDate').textContent = `Session: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-  }
-  setInterval(updateDateTime,1000);
-  updateDateTime(); // immediate update
+ function updateDateTime(){
+ const now = new Date();
+ document.getElementById('sessionDate').textContent = `Session: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+ }
+ setInterval(updateDateTime,1000);
+ updateDateTime(); // immediate update
 
-  function updateSessionTime(){
-    const elapsedSec = Math.floor((Date.now() - gameState.sessionStartTime) / 1000);
-    document.getElementById('sessionTime').textContent = `${Math.floor(elapsedSec/60)}:${(elapsedSec%60).toString().padStart(2,'0')}`;
-  }
-  setInterval(updateSessionTime,1000);
-  updateSessionTime(); // immediate update
+ function updateSessionTime(){
+ const elapsedSec = Math.floor((Date.now() - gameState.sessionStartTime) / 1000);
+ document.getElementById('sessionTime').textContent = `${Math.floor(elapsedSec/60)}:${(elapsedSec%60).toString().padStart(2,'0')}`;
+ }
+ setInterval(updateSessionTime,1000);
+ updateSessionTime(); // immediate update
 
-  function updateScore(n){
-    gameState.score = n;
-    document.getElementById('currentScore').textContent = n;
-    if(n > gameState.highScore){
-      gameState.highScore = n;
-      document.getElementById('highScore').textContent = n;
-      addLogEntry(`New high score: ${n}!`);
-    }
-  }
+ function updateScore(n){
+ gameState.score = n;
+ document.getElementById('currentScore').textContent = n;
+ if(n > gameState.highScore){
+ gameState.highScore = n;
+ document.getElementById('highScore').textContent = n;
+ addLogEntry(`New high score: ${n}!`);
+ }
+ }
 
-  function resetScore(){
-    gameState.score = 0;
-    updateScore(0);
-    addLogEntry('Score reset');
-  }
+ function resetScore(){
+ gameState.score = 0;
+ updateScore(0);
+ addLogEntry('Score reset');
+ }
 
-  function storeCurrentScore(){
-    const patientName = document.getElementById('patientName').value || "Unknown";
-    const entry = {
-      score: gameState.score,
-      time: Date.now(),
-      patient: patientName,
-      rounds: gameState.gamesPlayed || 0,
-      difficulty: currentDifficulty || "Unknown"
-    };
-    storedScores.push(entry);
-    localStorage.setItem('pg_storedScores', JSON.stringify(storedScores));
-    renderStoredScores();
-    addLogEntry(`Stored score for ${entry.patient} — Score: ${entry.score}, Rounds: ${entry.rounds}, Difficulty: ${entry.difficulty}`);
-  }
+ function storeCurrentScore(){
+ const patientName = document.getElementById('patientName').value || "Unknown";
+ const entry = {
+ score: gameState.score,
+ time: Date.now(),
+ patient: patientName,
+ rounds: gameState.gamesPlayed || 0,
+ difficulty: currentDifficulty || "Unknown"
+ };
+ storedScores.push(entry);
+ localStorage.setItem('pg_storedScores', JSON.stringify(storedScores));
+ renderStoredScores();
+ addLogEntry(`Stored score for ${entry.patient} — Score: ${entry.score}, Rounds: ${entry.rounds}, Difficulty: ${entry.difficulty}`);
+ }
 
-  function renderStoredScores(){
-    const el = document.getElementById('storedScores');
-    if(storedScores.length === 0){
-      el.innerHTML = '<div>No scores stored yet.</div>';
-      return;
-    }
-    el.innerHTML = storedScores.map(s => `
-      <div class="log-entry">
-        <div class="log-time">${new Date(s.time).toLocaleString()}</div>
-        <div><strong>Patient:</strong> ${s.patient || "Unknown"}</div>
-        <div><strong>Score:</strong> ${s.score}</div>
-        <div><strong>Rounds played:</strong> ${s.rounds ?? "N/A"}</div>
-        <div><strong>Difficulty:</strong> ${s.difficulty || "Unknown"}</div>
-      </div>
-    `).join('');
-  }
+ function renderStoredScores(){
+ const el = document.getElementById('storedScores');
+ if(storedScores.length === 0){
+ el.innerHTML = '<div>No scores stored yet.</div>';
+ return;
+ }
+ el.innerHTML = storedScores.map(s => `
+ <div class="log-entry">
+ <div class="log-time">${new Date(s.time).toLocaleString()}</div>
+ <div><strong>Patient:</strong> ${s.patient || "Unknown"}</div>
+ <div><strong>Score:</strong> ${s.score}</div>
+ <div><strong>Rounds played:</strong> ${s.rounds ?? "N/A"}</div>
+ <div><strong>Difficulty:</strong> ${s.difficulty || "Unknown"}</div>
+ </div>
+ `).join('');
+ }
 
-  // PDF export using jsPDF
-  function exportScoresPdf(){
-    if(!storedScores.length){
-      alert("No scores to export.");
-      return;
-    }
-    if(!window.jspdf){
-      alert("PDF library not loaded.");
-      return;
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    let y = 10;
-    doc.setFontSize(16);
-    doc.text("Patient Game Log - Stored Scores", 10, y);
-    y += 8;
-    doc.setFontSize(11);
+ // PDF export using jsPDF
+ function exportScoresPdf(){
+ if(!storedScores.length){
+ alert("No scores to export.");
+ return;
+ }
+ if(!window.jspdf){
+ alert("PDF library not loaded.");
+ return;
+ }
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF();
+ let y = 10;
+ doc.setFontSize(16);
+ doc.text("Patient Game Log - Stored Scores", 10, y);
+ y += 8;
+ doc.setFontSize(11);
 
-    storedScores.forEach((s, idx) => {
-      if(y > 270){
-        doc.addPage();
-        y = 10;
-      }
-      const timeStr = new Date(s.time).toLocaleString();
-      doc.text(`Entry ${idx+1}:`, 10, y); y += 5;
-      doc.text(`Patient: ${s.patient || "Unknown"}`, 12, y); y += 5;
-      doc.text(`Score: ${s.score}`, 12, y); y += 5;
-      doc.text(`Rounds played: ${s.rounds ?? "N/A"}`, 12, y); y += 5;
-      doc.text(`Difficulty: ${s.difficulty || "Unknown"}`, 12, y); y += 5;
-      doc.text(`Time: ${timeStr}`, 12, y); y += 7;
-    });
+ storedScores.forEach((s, idx) => {
+ if(y > 270){
+ doc.addPage();
+ y = 10;
+ }
+ const timeStr = new Date(s.time).toLocaleString();
+ doc.text(`Entry ${idx+1}:`, 10, y); y += 5;
+ doc.text(`Patient: ${s.patient || "Unknown"}`, 12, y); y += 5;
+ doc.text(`Score: ${s.score}`, 12, y); y += 5;
+ doc.text(`Rounds played: ${s.rounds ?? "N/A"}`, 12, y); y += 5;
+ doc.text(`Difficulty: ${s.difficulty || "Unknown"}`, 12, y); y += 5;
+ doc.text(`Time: ${timeStr}`, 12, y); y += 7;
+ });
 
-    doc.save("patient_scores.pdf");
-  }
+ doc.save("patient_scores.pdf");
+ }
 
-  // ---------------- camera ----------------
-  async function startCamera(){
-    try{
-      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('getUserMedia not supported');
-      cameraStream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
-      const video = document.getElementById('cameraFeed');
-      video.srcObject = cameraStream;
-      await video.play();
-      addLogEntry('Camera started');
-    }catch(err){
-      console.error('Camera error:', err);
-      addLogEntry('Camera error: ' + (err.message || err));
-      alert('Unable to access camera: ' + (err.message || err));
-    }
-  }
+ // ---------------- camera ----------------
+ async function startCamera(){
+ try{
+ if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('getUserMedia not supported');
+ cameraStream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+ const video = document.getElementById('cameraFeed');
+ video.srcObject = cameraStream;
+ await video.play();
+ addLogEntry('Camera started');
+ }catch(err){
+ console.error('Camera error:', err);
+ addLogEntry('Camera error: ' + (err.message || err));
+ alert('Unable to access camera: ' + (err.message || err));
+ }
+ }
 
-  function stopCamera(){
-    if(cameraStream){
-      cameraStream.getTracks().forEach(t => t.stop());
-      cameraStream = null;
-      const video = document.getElementById('cameraFeed');
-      video.srcObject = null;
-      addLogEntry('Camera stopped');
-    } else addLogEntry('Camera was not running');
-  }
+ function stopCamera(){
+ if(cameraStream){
+ cameraStream.getTracks().forEach(t => t.stop());
+ cameraStream = null;
+ const video = document.getElementById('cameraFeed');
+ video.srcObject = null;
+ addLogEntry('Camera stopped');
+ } else addLogEntry('Camera was not running');
+ }
 
-  // ---------------- Web Serial (Arduino integration) ----------------
-  function setConnectedUI(connected){
-    const ind = document.getElementById('statusIndicator');
-    const text = document.getElementById('connectionText');
-    const btn = document.getElementById('connectSerialBtn');
-    if(connected){
-      ind.style.background = '#4caf50';
-      text.textContent = 'Connected';
-      btn.textContent = 'Disconnect Arduino';
-    } else {
-      ind.style.background = '#9e9e9e';
-      text.textContent = 'Disconnected';
-      btn.textContent = 'Connect Arduino';
-    }
-  }
+ // ---------------- Web Serial (Arduino integration) ----------------
+ function setConnectedUI(connected){
+ const ind = document.getElementById('statusIndicator');
+ const text = document.getElementById('connectionText');
+ const btn = document.getElementById('connectSerialBtn');
+ if(connected){
+ ind.style.background = '#4caf50';
+ text.textContent = 'Connected';
+ btn.textContent = 'Disconnect Arduino';
+ } else {
+ ind.style.background = '#9e9e9e';
+ text.textContent = 'Disconnected';
+ btn.textContent = 'Connect Arduino';
+ }
+ }
 
-  async function connectSerial(){
-    try{
-      if (!('serial' in navigator)){
-        alert('Web Serial API not available in this browser. Use Chrome/Edge/Brave.');
-        return;
-      }
+ async function connectSerial(){
+ try{
+ if (!('serial' in navigator)){
+ alert('Web Serial API not available in this browser. Use Chrome/Edge/Brave.');
+ return;
+ }
 
-      // Toggle disconnect if already connected
-      if (serialPort){
-        await disconnectSerial();
-        return;
-      }
+ // Toggle disconnect if already connected
+ if (serialPort){
+ await disconnectSerial();
+ return;
+ }
 
-      try {
-        serialPort = await navigator.serial.requestPort();
-      } catch(e){
-        addLogEntry('User cancelled port selection');
-        return;
-      }
+ try {
+ serialPort = await navigator.serial.requestPort();
+ } catch(e){
+ addLogEntry('User cancelled port selection');
+ return;
+ }
 
-      await serialPort.open({ baudRate: 9600 });
-      setConnectedUI(true);
-      addLogEntry('Serial connected — reading from Arduino');
+ await serialPort.open({ baudRate: 9600 });
+ setConnectedUI(true);
+ addLogEntry('Serial connected — reading from Arduino');
 
-      const textDecoder = new TextDecoderStream();
-      serialPort.readable.pipeTo(textDecoder.writable);
-      serialReader = textDecoder.readable.getReader();
+ const textDecoder = new TextDecoderStream();
+ serialPort.readable.pipeTo(textDecoder.writable);
+ serialReader = textDecoder.readable.getReader();
 
-      while(true){
-        const { value, done } = await serialReader.read();
-        if (done) break;
-        if (!value) continue;
-        value.split(/\r?\n/).forEach(line => {
-          const trimmed = line.trim();
-          if(trimmed) handleSerialLine(trimmed);
-        });
-      }
-    }catch(err){
-      console.error('Serial error', err);
-      addLogEntry('Serial error: ' + (err.message || err));
-      alert('Serial error: ' + (err.message || err));
-      try{ await disconnectSerial(); }catch(e){}
-    }
-  }
+ while(true){
+ const { value, done } = await serialReader.read();
+ if (done) break;
+ if (!value) continue;
 
-  async function disconnectSerial(){
-    try{
-      if(serialReader){ try{ await serialReader.cancel(); }catch(e){} try{ serialReader.releaseLock(); }catch(e){} serialReader = null; }
-      if(serialPort){ try{ await serialPort.close(); }catch(e){} serialPort = null; }
-    }catch(e){ console.warn('Disconnect cleanup failed', e); }
-    setConnectedUI(false);
-    addLogEntry('Serial disconnected');
-  }
+ // Buffer the incoming data to handle partial lines
+ serialBuffer += value;
+ const lines = serialBuffer.split(/\r?\n/);
 
-  // Parser tailored to your Arduino output
-  function handleSerialLine(line){
-    const trimmed = line.trim();
-    if(!trimmed) return;
-    const safe = cleanSerialText(trimmed);
+ // Keep the last incomplete line in the buffer
+ serialBuffer = lines.pop() || "";
 
-    // 1) Score lines: "Score: <n>"
-    const scoreMatch = trimmed.match(/^Score:\s*(\d+)\s*$/i);
-    if(scoreMatch){
-      const n = parseInt(scoreMatch[1],10);
-      if(!isNaN(n)){ updateScore(n); addLogEntry('Score updated from device: ' + n); }
-      else addLogEntry('Received SCORE line but value not a number: ' + safe);
-      return;
-    }
+ // Process complete lines
+ lines.forEach(line => {
+ const trimmed = line.trim();
+ if(trimmed) handleSerialLine(trimmed);
+ });
+ }
+ }catch(err){
+ console.error('Serial error', err);
+ addLogEntry('Serial error: ' + (err.message || err));
+ alert('Serial error: ' + (err.message || err));
+ try{ await disconnectSerial(); }catch(e){}
+ }
+ }
 
-    // 2) New round banner
-    if(trimmed.indexOf('=== New Round ===') !== -1){
-      addLogEntry('Device: New round started');
-      gameState.gamesPlayed = (gameState.gamesPlayed || 0) + 1;
-      document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
-      const innerScore = trimmed.match(/\|\s*Score:\s*(\d+)/i);
-      if(innerScore){
-        const n = parseInt(innerScore[1],10);
-        if(!isNaN(n)) updateScore(n);
-      }
-      return;
-    }
+ async function disconnectSerial(){
+ try{
+ if(serialReader){ try{ await serialReader.cancel(); }catch(e){} try{ serialReader.releaseLock(); }catch(e){} serialReader = null; }
+ if(serialPort){ try{ await serialPort.close(); }catch(e){} serialPort = null; }
+ serialBuffer = ""; // Clear any buffered data
+ }catch(e){ console.warn('Disconnect cleanup failed', e); }
+ setConnectedUI(false);
+ addLogEntry('Serial disconnected');
+ }
 
-    // 3) Rounds played
-    const roundsMatch = trimmed.match(/^Rounds played:\s*(\d+)\s*$/i);
-    if(roundsMatch){
-      const r = parseInt(roundsMatch[1],10);
-      if(!isNaN(r)){
-        gameState.gamesPlayed = r;
-        document.getElementById('gamesPlayed').textContent = r;
-        addLogEntry('Device: rounds played = ' + r);
-      }
-      return;
-    }
+ // Parser tailored to your Arduino output
+ function handleSerialLine(line){
+ const trimmed = line.trim();
+ if(!trimmed) return;
+ const safe = cleanSerialText(trimmed);
+ if(!safe) return; // Skip if nothing left after cleaning
 
-    // 4) Simple textual events and difficulty capture
-    if(/watch the pattern/i.test(trimmed)){
-      addLogEntry('Device: showing pattern');
-      return;
-    }
-    if(/your turn/i.test(trimmed)){
-      addLogEntry('Device: waiting for user input');
-      return;
-    }
-    if(/^Difficulty selected:/i.test(trimmed)){
-      // Example: "Difficulty selected: EASY (3-step pattern)"
-      const m = trimmed.match(/^Difficulty selected:\s*([A-Z]+)/i);
-      if(m){ currentDifficulty = m[1].toUpperCase(); }
-      addLogEntry('Device: ' + safe + ' (Difficulty: ' + currentDifficulty + ')');
-      return;
-    }
-    if(/select difficulty/i.test(trimmed)){
-      addLogEntry('Device: ' + safe);
-      return;
-    }
-    if(/game over/i.test(trimmed)){
-      addLogEntry('Device: GAME OVER — ' + safe);
-      return;
-    }
+ // 1) Score lines: "Score: <n>"
+ const scoreMatch = safe.match(/^Score:\s*(\d+)\s*$/i);
+ if(scoreMatch){
+ const n = parseInt(scoreMatch[1],10);
+ if(!isNaN(n)){
+ updateScore(n);
+ addLogEntry('Score updated: ' + n);
+ }
+ return;
+ }
 
-    // 5) Steps or LEDs
-    if(/^Step\s+\d+/i.test(trimmed) || /^LED\s+\d+\s*-\s*/i.test(trimmed) || /^PATTERN_STEP:/i.test(trimmed)){
-      addLogEntry('Device: ' + safe);
-      return;
-    }
+ // 2) New round banner - handle various formats
+ if(safe.indexOf('New Round') !== -1 || safe.indexOf('===') !== -1){
+ addLogEntry('🎮 New round started');
+ gameState.gamesPlayed = (gameState.gamesPlayed || 0) + 1;
+ document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
 
-    // fallback
-    addLogEntry('Serial: ' + safe);
-  }
+ // Try to extract score from banner
+ const innerScore = safe.match(/Score:\s*(\d+)/i);
+ if(innerScore){
+ const n = parseInt(innerScore[1],10);
+ if(!isNaN(n)) updateScore(n);
+ }
+ return;
+ }
 
-  // ---------------- init / wiring ----------------
-  function switchTab(target){
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(s=>s.classList.remove('active'));
-    document.querySelector(`[data-target="${target}"]`)?.classList.add('active');
-    document.getElementById(target)?.classList.add('active');
-  }
+ // 3) Rounds played
+ const roundsMatch = safe.match(/^Rounds played:\s*(\d+)\s*$/i);
+ if(roundsMatch){
+ const r = parseInt(roundsMatch[1],10);
+ if(!isNaN(r)){
+ gameState.gamesPlayed = r;
+ document.getElementById('gamesPlayed').textContent = r;
+ addLogEntry('Rounds played: ' + r);
+ }
+ return;
+ }
 
-  function init(){
-    document.getElementById('connectSerialBtn').addEventListener('click', connectSerial);
-    document.getElementById('resetScoreBtn').addEventListener('click', resetScore);
-    document.getElementById('storeScoreBtn').addEventListener('click', storeCurrentScore);
-    document.getElementById('exportPdfBtn').addEventListener('click', exportScoresPdf);
-    document.getElementById('startCameraBtn').addEventListener('click', startCamera);
-    document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
-    document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.target)));
+ // 4) Difficulty selection
+ if(/^Difficulty selected:/i.test(safe)){
+ const m = safe.match(/^Difficulty selected:\s*([A-Z]+)/i);
+ if(m){
+ currentDifficulty = m[1].toUpperCase();
+ addLogEntry('🎯 Difficulty: ' + currentDifficulty);
+ } else {
+ addLogEntry(safe);
+ }
+ return;
+ }
 
-    // instruction modal close + reopen
-    const modal = document.getElementById('instructionModal');
-    const closeBtn = document.getElementById('closeInstructionBtn');
-    const showBtn = document.getElementById('showInstructionsBtn');
-    if(closeBtn){
-      closeBtn.addEventListener('click', ()=>{ modal.style.display = 'none'; });
-    }
-    if(showBtn){
-      showBtn.addEventListener('click', ()=>{ modal.style.display = 'flex'; });
-    }
+ // 5) Game states
+ if(/watch the pattern/i.test(safe)){
+ addLogEntry('👀 Watch the pattern...');
+ return;
+ }
+ if(/your turn/i.test(safe)){
+ addLogEntry('⌨️ Your turn to play');
+ return;
+ }
+ if(/select difficulty/i.test(safe)){
+ addLogEntry('🎮 Select difficulty');
+ return;
+ }
+ if(/game over/i.test(safe)){
+ addLogEntry('🏁 GAME OVER');
+ return;
+ }
+ if(/correct/i.test(safe)){
+ addLogEntry('✅ Correct!');
+ return;
+ }
+ if(/wrong/i.test(safe) || /incorrect/i.test(safe)){
+ addLogEntry('❌ Wrong answer');
+ return;
+ }
 
-    // Load stored scores
-    try{
-      const raw = localStorage.getItem('pg_storedScores');
-      if(raw) storedScores = JSON.parse(raw);
-    }catch(e){
-      storedScores = [];
-    }
-    renderStoredScores();
+ // 6) Pattern steps - format nicely
+ if(/^Step\s+\d+/i.test(safe)){
+ addLogEntry('📍 ' + safe);
+ return;
+ }
+ if(/^LED\s+\d+/i.test(safe)){
+ addLogEntry('💡 ' + safe);
+ return;
+ }
+ if(/^PATTERN_STEP:/i.test(safe)){
+ addLogEntry('🔵 ' + safe.replace('PATTERN_STEP:', 'Pattern:'));
+ return;
+ }
 
-    updateDateTime();
-    updateSessionTime();
-    addLogEntry('App initialized — connect your Arduino to use real scores.');
-  }
+ // 7) Skip empty or formatting-only lines
+ if(safe.length === 0 || /^[=\-|]+$/.test(safe)){
+ return;
+ }
 
-  window.addEventListener('DOMContentLoaded', init);
-  </script>
+ // 8) Fallback - log everything else
+ addLogEntry(safe);
+ }
+
+ // ---------------- init / wiring ----------------
+ function switchTab(target){
+ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+ document.querySelectorAll('.tab-content').forEach(s=>s.classList.remove('active'));
+ document.querySelector(`[data-target="${target}"]`)?.classList.add('active');
+ document.getElementById(target)?.classList.add('active');
+ }
+
+ function init(){
+ document.getElementById('connectSerialBtn').addEventListener('click', connectSerial);
+ document.getElementById('resetScoreBtn').addEventListener('click', resetScore);
+ document.getElementById('storeScoreBtn').addEventListener('click', storeCurrentScore);
+ document.getElementById('exportPdfBtn').addEventListener('click', exportScoresPdf);
+ document.getElementById('startCameraBtn').addEventListener('click', startCamera);
+ document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
+ document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.target)));
+
+ // instruction modal close + reopen
+ const modal = document.getElementById('instructionModal');
+ const closeBtn = document.getElementById('closeInstructionBtn');
+ const showBtn = document.getElementById('showInstructionsBtn');
+ if(closeBtn){
+ closeBtn.addEventListener('click', ()=>{ modal.style.display = 'none'; });
+ }
+ if(showBtn){
+ showBtn.addEventListener('click', ()=>{ modal.style.display = 'flex'; });
+ }
+
+ // Load stored scores
+ try{
+ const raw = localStorage.getItem('pg_storedScores');
+ if(raw) storedScores = JSON.parse(raw);
+ }catch(e){
+ storedScores = [];
+ }
+ renderStoredScores();
+
+ updateDateTime();
+ updateSessionTime();
+ addLogEntry('App initialized — connect your Arduino to use real scores.');
+ }
+
+ window.addEventListener('DOMContentLoaded', init);
+ </script>
 </body>
 </html>
