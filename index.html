@@ -128,7 +128,7 @@
  <ul>
  <li>If you get the whole pattern right, your score increases.</li>
  <li>If your total score reaches 3 or a multiple of 3, the motor activates: moving forward to raise a flag, then reversing as a reward.</li>
- <li>If you get it wrong, the game prints the correct sequence on the Serial Monitor and the app will show it to you.</li>
+ <li>If you get it wrong, the game prints the correct sequence on the Serial Monitor.</li>
  </ul>
  <h3>6. Continue or Quit</h3>
  <p>After each round:</p>
@@ -457,21 +457,24 @@
  addLogEntry('🏁 GAME OVER');
  return;
  }
- if(/correct/i.test(safe)){
+ // incorrect/wrong handling (show incorrect + correct pattern)
+ if(/(incorrect|wrong)/i.test(safe)){
+ addLogEntry('❌ Incorrect pattern.');
+ const bothMatch = safe.match(/correct (pattern|sequence)\s*[:\-]?\s*(.+)/i);
+ if(bothMatch && bothMatch[2]){
+ addLogEntry('🔁 Correct pattern: ' + bothMatch[2].trim());
+ }
+ return;
+ }
+ // explicit "correct pattern/sequence" lines
+ const correctPatternMatch = safe.match(/correct (pattern|sequence)\s*[:\-]?\s*(.+)/i);
+ if(correctPatternMatch && correctPatternMatch[2]){
+ addLogEntry('🔁 Correct pattern: ' + correctPatternMatch[2].trim());
+ return;
+ }
+ // success messages (plain "correct")
+ if(/\bcorrect\b/i.test(safe)){
  addLogEntry('✅ Correct!');
- return;
- }
- if(/wrong/i.test(safe) || /incorrect/i.test(safe)){
- addLogEntry('❌ Oh no, that was not quite right. Here is the correct pattern:');
- return;
- }
- if(/correct (pattern|sequence)/i.test(safe)){
- const pretty = safe.replace(/.*correct (pattern|sequence)\s*[:\-]?\s*/i,'');
- if(pretty){
- addLogEntry('🔁 Correct pattern: ' + pretty);
- } else {
- addLogEntry('🔁 ' + safe);
- }
  return;
  }
  if(/^Step\s+\d+/i.test(safe)){
